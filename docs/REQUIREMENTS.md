@@ -180,6 +180,7 @@ import/export.
 |---|---|---|
 | Language | TypeScript (strict mode) | The compiler can check the data model's rules, such as the `completedAt` invariant. |
 | UI framework | React | Large ecosystem, and good accessible drag-and-drop libraries. |
+| Routing | TanStack Router (file-based) + Zod | URL search params with type-checked values, such as the status filter. Chosen partly as a chance to learn TanStack Router. |
 | Build tool and dev server | Vite | Fast, and the standard choice for React with TypeScript. |
 | Storage | IndexedDB through Dexie | Saves each todo as its own record, so a change saves completely or not at all. Supports indexes and schema migrations. |
 | Drag-and-drop | dnd-kit | Supports the keyboard and screen readers (NFR-2, FR-14). |
