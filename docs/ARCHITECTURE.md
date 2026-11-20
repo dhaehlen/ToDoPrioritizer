@@ -82,15 +82,21 @@ export type Quadrant = 'Q1' | 'Q2' | 'Q3' | 'Q4';
 export type IsoUtc = string; // e.g. "2026-11-20T22:15:00.000Z"
 
 interface TodoBase {
-  id: string;               // crypto.randomUUID()
-  title: string;            // 1–200 characters, trimmed
-  description: string;      // 0–2000 characters, '' if none
+  id: string; // crypto.randomUUID()
+  title: string; // 1–200 characters, trimmed
+  description: string; // 0–2000 characters, '' if none
   quadrant: Quadrant | null; // null = Unsorted
   createdAt: IsoUtc;
   updatedAt: IsoUtc;
 }
-export interface ActiveTodo    extends TodoBase { isCompleted: false; completedAt: null }
-export interface CompletedTodo extends TodoBase { isCompleted: true;  completedAt: IsoUtc }
+export interface ActiveTodo extends TodoBase {
+  isCompleted: false;
+  completedAt: null;
+}
+export interface CompletedTodo extends TodoBase {
+  isCompleted: true;
+  completedAt: IsoUtc;
+}
 export type Todo = ActiveTodo | CompletedTodo;
 ```
 
@@ -104,14 +110,14 @@ These functions are pure: they never change their input and always return a
 new todo. The current time and new ids are passed in as arguments, so tests
 can control them.
 
-| Function | Requirement | Behavior |
-|---|---|---|
-| `validateTodoInput(input)` | FR-4 | Returns `Result<ValidInput, ValidationError[]>`. Trims the title and rejects one that is blank or too long. |
-| `createTodo(input, now, id)` | FR-1 | Returns an `ActiveTodo` and sets `createdAt = updatedAt = now`. |
-| `editTodo(todo, patch, now)` | FR-2 | Changes the title, description, and quadrant. Keeps `createdAt`, `completedAt`, and the completion state. |
-| `completeTodo(todo, now)` | FR-5 | Returns a `CompletedTodo`. Does nothing if the todo is already done. |
-| `reopenTodo(todo, now)` | FR-6 | Returns an `ActiveTodo` with `completedAt = null`. |
-| `assignQuadrant(todo, q \| null, now)` | FR-14 | Sets the quadrant. Null moves the todo to Unsorted. |
+| Function                               | Requirement | Behavior                                                                                                    |
+| -------------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------- |
+| `validateTodoInput(input)`             | FR-4        | Returns `Result<ValidInput, ValidationError[]>`. Trims the title and rejects one that is blank or too long. |
+| `createTodo(input, now, id)`           | FR-1        | Returns an `ActiveTodo` and sets `createdAt = updatedAt = now`.                                             |
+| `editTodo(todo, patch, now)`           | FR-2        | Changes the title, description, and quadrant. Keeps `createdAt`, `completedAt`, and the completion state.   |
+| `completeTodo(todo, now)`              | FR-5        | Returns a `CompletedTodo`. Does nothing if the todo is already done.                                        |
+| `reopenTodo(todo, now)`                | FR-6        | Returns an `ActiveTodo` with `completedAt = null`.                                                          |
+| `assignQuadrant(todo, q \| null, now)` | FR-14       | Sets the quadrant. Null moves the todo to Unsorted.                                                         |
 
 Every change also sets `updatedAt = now`.
 
@@ -131,7 +137,7 @@ Every change also sets `updatedAt = now`.
 ```ts
 export interface TodoRepository {
   getAll(): Promise<Todo[]>;
-  put(todo: Todo): Promise<void>;           // insert or replace
+  put(todo: Todo): Promise<void>; // insert or replace
   delete(id: string): Promise<void>;
   subscribe(listener: () => void): () => void; // fires after any change
 }
@@ -240,16 +246,16 @@ library throughout.
 
 ### 6.2 Key components
 
-| Component | Purpose | Requirements |
-|---|---|---|
-| `TodoForm` | Add/edit dialog with title, description, and quadrant. Shows validation messages next to the fields. | FR-1, FR-2, FR-4 |
-| `TodoItem` | A row with a checkbox, title, dates, a quadrant badge, and edit/delete buttons. | FR-5–8 |
-| `ConfirmDialog` | Confirms deletion. Uses an accessible `<dialog>`. | FR-3, Q7 |
-| `FilterTabs` | All / Active / Completed. | FR-9 |
-| `QuadrantGrid` / `QuadrantCell` | The 2×2 grid with axis labels and counts. | FR-12, FR-17 |
-| `UnsortedTray` | Shows todos with no quadrant. It is also a drop target. | FR-13 |
-| `DraggableTodoCard` | A dnd-kit draggable card. | FR-14 |
-| `QuadrantPicker` | A menu ("Move to…") on every card, for users who can't or don't drag. | FR-14, NFR-2 |
+| Component                       | Purpose                                                                                              | Requirements     |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------- | ---------------- |
+| `TodoForm`                      | Add/edit dialog with title, description, and quadrant. Shows validation messages next to the fields. | FR-1, FR-2, FR-4 |
+| `TodoItem`                      | A row with a checkbox, title, dates, a quadrant badge, and edit/delete buttons.                      | FR-5–8           |
+| `ConfirmDialog`                 | Confirms deletion. Uses an accessible `<dialog>`.                                                    | FR-3, Q7         |
+| `FilterTabs`                    | All / Active / Completed.                                                                            | FR-9             |
+| `QuadrantGrid` / `QuadrantCell` | The 2×2 grid with axis labels and counts.                                                            | FR-12, FR-17     |
+| `UnsortedTray`                  | Shows todos with no quadrant. It is also a drop target.                                              | FR-13            |
+| `DraggableTodoCard`             | A dnd-kit draggable card.                                                                            | FR-14            |
+| `QuadrantPicker`                | A menu ("Move to…") on every card, for users who can't or don't drag.                                | FR-14, NFR-2     |
 
 ### 6.3 Drag-and-drop
 
@@ -268,22 +274,27 @@ show the four quadrants stacked in one column, Q1 to Q4 (NFR-3).
 
 ## 7. Testing strategy
 
-| Level | Tool | What it covers |
-|---|---|---|
-| Unit | Vitest | All domain rules and selectors, using a fixed clock. This includes edge cases such as titles of 200 vs. 201 characters, titles that are only spaces, completing a todo twice, and reopening. |
-| Data contract | Vitest + `fake-indexeddb` | One suite run against both repository implementations, plus migration tests. |
-| Component | Vitest + React Testing Library + `user-event` | Forms, filters, picking a quadrant without dragging, and the confirm dialog. Uses the in-memory repository. |
-| End-to-end | Playwright (Chromium, Firefox, WebKit) | AC-1 to AC-5, keeping data across reloads, keyboard drag-and-drop, and a mobile-size screen. |
-| Accessibility | `@axe-core/playwright` | Automated checks of both views (NFR-2). |
-| Performance | Playwright | A test that loads 1,000 todos and checks that each view renders in under 200 ms (NFR-4). |
+| Level         | Tool                                          | What it covers                                                                                                                                                                               |
+| ------------- | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit          | Vitest                                        | All domain rules and selectors, using a fixed clock. This includes edge cases such as titles of 200 vs. 201 characters, titles that are only spaces, completing a todo twice, and reopening. |
+| Data contract | Vitest + `fake-indexeddb`                     | One suite run against both repository implementations, plus migration tests.                                                                                                                 |
+| Component     | Vitest + React Testing Library + `user-event` | Forms, filters, picking a quadrant without dragging, and the confirm dialog. Uses the in-memory repository.                                                                                  |
+| End-to-end    | Playwright (Chromium, Firefox, WebKit)        | AC-1 to AC-5, keeping data across reloads, keyboard drag-and-drop, and a mobile-size screen.                                                                                                 |
+| Accessibility | `@axe-core/playwright`                        | Automated checks of both views (NFR-2).                                                                                                                                                      |
+| Performance   | Playwright                                    | A test that loads 1,000 todos and checks that each view renders in under 200 ms (NFR-4).                                                                                                     |
 
 **Coverage target:** 100% of the domain layer and at least 80% overall.
 
 ## 8. Tooling
 
-- Node 22 LTS, npm.
-- TypeScript in `strict` mode, with `noUncheckedIndexedAccess` turned on.
-- ESLint (with typescript-eslint, react-hooks, and jsx-a11y) and Prettier.
+- Node 26 LTS (see `.nvmrc`), npm.
+- TypeScript 6.0 in `strict` mode, with `noUncheckedIndexedAccess` turned on.
+  TypeScript 7 can't be used yet because typescript-eslint supports only
+  versions below 6.1.
+- ESLint 10 with typed linting (typescript-eslint `strictTypeChecked`), plus
+  react-hooks, jsx-a11y, and Prettier. jsx-a11y doesn't officially list ESLint 10
+  as supported yet. It is installed through an npm `overrides` entry, and its
+  rules have been checked to work.
 - `eslint-plugin-playwright`, applied only to `e2e/**`, using its
   `recommended` config. This catches common Playwright mistakes, such as a
   missing `await` on an assertion (`missing-playwright-await`), `page.waitForTimeout`
@@ -303,36 +314,36 @@ show the four quadrants stacked in one column, Q1 to Q4 (NFR-3).
 Each milestone is finished only when its tests pass and both lint and
 typecheck are clean.
 
-| # | Milestone | Deliverables |
-|---|---|---|
-| M0 | Scaffold | Vite + React + TS project, TanStack Router with its Vite plugin and placeholder `/` and `/matrix` routes, ESLint (including the Playwright and TanStack Router plugins), Prettier, Vitest, Playwright set up for all 3 browsers, a smoke test, and the npm scripts. |
-| M1 | Domain | `todo.ts`, `todo.rules.ts`, `selectors.ts`, `quadrants.ts`, and full unit tests. |
-| M2 | Data | The repository interface, Dexie and in-memory implementations, and the contract tests. |
-| M3 | State | `RepositoryContext`, `TodoService`, the hooks, and error handling. |
-| M4 | List view | Add, edit, delete with confirmation, complete and reopen, filters, and empty states. Component tests. |
-| M5 | Matrix view | The grid, Unsorted tray, dnd-kit, `QuadrantPicker`, counts, and the show-completed toggle. Component tests. |
-| M6 | Polish | Responsive layout, an accessibility pass, and error states. |
-| M7 | E2E | Playwright specs for AC-1–AC-5, plus the accessibility and performance checks. |
+| #   | Milestone   | Deliverables                                                                                                                                                                                                                                                        |
+| --- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| M0  | Scaffold    | Vite + React + TS project, TanStack Router with its Vite plugin and placeholder `/` and `/matrix` routes, ESLint (including the Playwright and TanStack Router plugins), Prettier, Vitest, Playwright set up for all 3 browsers, a smoke test, and the npm scripts. |
+| M1  | Domain      | `todo.ts`, `todo.rules.ts`, `selectors.ts`, `quadrants.ts`, and full unit tests.                                                                                                                                                                                    |
+| M2  | Data        | The repository interface, Dexie and in-memory implementations, and the contract tests.                                                                                                                                                                              |
+| M3  | State       | `RepositoryContext`, `TodoService`, the hooks, and error handling.                                                                                                                                                                                                  |
+| M4  | List view   | Add, edit, delete with confirmation, complete and reopen, filters, and empty states. Component tests.                                                                                                                                                               |
+| M5  | Matrix view | The grid, Unsorted tray, dnd-kit, `QuadrantPicker`, counts, and the show-completed toggle. Component tests.                                                                                                                                                         |
+| M6  | Polish      | Responsive layout, an accessibility pass, and error states.                                                                                                                                                                                                         |
+| M7  | E2E         | Playwright specs for AC-1–AC-5, plus the accessibility and performance checks.                                                                                                                                                                                      |
 
 ## 10. Requirement traceability
 
-| Requirement | Where it is implemented | Verified by |
-|---|---|---|
-| FR-1–2, FR-4 | `todo.rules.ts`, `TodoForm` | unit, component, AC-2, AC-4 |
-| FR-3 | `TodoService.remove`, `ConfirmDialog` | component, AC-5 |
-| FR-5–7 | `completeTodo` / `reopenTodo`, `TodoItem` | unit, AC-1 |
-| FR-8–11 | `selectors.ts`, `ListView`, `FilterTabs`, `routes/index.tsx` search schema | unit, component, e2e (`?status=` deep link + default) |
-| FR-12–17 | `groupByQuadrant`, `MatrixView`, dnd-kit, `QuadrantPicker` | unit, component, AC-3 |
-| FR-18–19 | `DexieTodoRepository` | contract, e2e reload |
-| NFR-2 | jsx-a11y, dnd-kit `KeyboardSensor`, axe | e2e (axe) |
-| NFR-4 | in-memory filtering | e2e performance check |
-| NFR-5 | single-record transactions, `Todo` types | contract, typecheck |
+| Requirement  | Where it is implemented                                                    | Verified by                                           |
+| ------------ | -------------------------------------------------------------------------- | ----------------------------------------------------- |
+| FR-1–2, FR-4 | `todo.rules.ts`, `TodoForm`                                                | unit, component, AC-2, AC-4                           |
+| FR-3         | `TodoService.remove`, `ConfirmDialog`                                      | component, AC-5                                       |
+| FR-5–7       | `completeTodo` / `reopenTodo`, `TodoItem`                                  | unit, AC-1                                            |
+| FR-8–11      | `selectors.ts`, `ListView`, `FilterTabs`, `routes/index.tsx` search schema | unit, component, e2e (`?status=` deep link + default) |
+| FR-12–17     | `groupByQuadrant`, `MatrixView`, dnd-kit, `QuadrantPicker`                 | unit, component, AC-3                                 |
+| FR-18–19     | `DexieTodoRepository`                                                      | contract, e2e reload                                  |
+| NFR-2        | jsx-a11y, dnd-kit `KeyboardSensor`, axe                                    | e2e (axe)                                             |
+| NFR-4        | in-memory filtering                                                        | e2e performance check                                 |
+| NFR-5        | single-record transactions, `Todo` types                                   | contract, typecheck                                   |
 
 ## 11. Decisions
 
-| # | Topic | Status |
-|---|---|---|
-| 1 | Routing, and where the status filter is kept | **Decided.** TanStack Router with file-based routes. The filter is kept in the URL and checked with Zod (section 6.1). |
-| 2 | Styling | **Decided.** CSS Modules, with no UI component library. |
-| 3 | Status filter default | **Decided.** "Active". It is left out of the URL because it is the default. |
-| 4 | Browsers tested by Playwright | **Decided.** All three engines: Chromium, Firefox, and WebKit. |
+| #   | Topic                                        | Status                                                                                                                                               |
+| --- | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Routing, and where the status filter is kept | **Decided.** TanStack Router with file-based routes. The filter is kept in the URL and checked with Zod (section 6.1).                               |
+| 2   | Styling                                      | **Decided.** CSS Modules, with no UI component library.                                                                                              |
+| 3   | Status filter default                        | **Decided.** "Active". It is left out of the URL because it is the default.                                                                          |
+| 4   | Browsers tested by Playwright                | **Decided.** All three engines. Firefox is temporarily disabled on the dev machine until the VC++ runtime is installed (see `playwright.config.ts`). |

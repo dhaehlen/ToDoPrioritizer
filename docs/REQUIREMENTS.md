@@ -11,28 +11,28 @@ todos and a **Matrix view** for sorting them into four quadrants.
 
 ## 2. Glossary
 
-| Term | Meaning |
-|---|---|
-| Todo | One task the user wants to track. |
-| Active | A todo that is not yet marked done. |
-| Completed | A todo marked done. It is kept, not deleted. |
-| Quadrant | One of the four Eisenhower categories (section 4). |
-| Unsorted | A todo that has not been put in a quadrant yet. |
+| Term      | Meaning                                            |
+| --------- | -------------------------------------------------- |
+| Todo      | One task the user wants to track.                  |
+| Active    | A todo that is not yet marked done.                |
+| Completed | A todo marked done. It is kept, not deleted.       |
+| Quadrant  | One of the four Eisenhower categories (section 4). |
+| Unsorted  | A todo that has not been put in a quadrant yet.    |
 
 ## 3. Data model
 
 ### 3.1 Todo
 
-| Field | Type | Required | Rules |
-|---|---|---|---|
-| `id` | unique ID | yes | Set by the system. Never changes. |
-| `title` | text | yes | 1–200 characters after trimming spaces. Cannot be blank. |
-| `description` | text | no | Up to 2,000 characters. |
-| `createdAt` | timestamp | yes | Set by the system when the todo is created. Never changes. |
-| `updatedAt` | timestamp | yes | Set by the system on every edit. |
-| `isCompleted` | boolean | yes | Starts as `false`. |
-| `completedAt` | timestamp or null | — | Set when the todo is marked done. Null while the todo is active. |
-| `quadrant` | `Q1`–`Q4` or null | — | Null means unsorted. |
+| Field         | Type              | Required | Rules                                                            |
+| ------------- | ----------------- | -------- | ---------------------------------------------------------------- |
+| `id`          | unique ID         | yes      | Set by the system. Never changes.                                |
+| `title`       | text              | yes      | 1–200 characters after trimming spaces. Cannot be blank.         |
+| `description` | text              | no       | Up to 2,000 characters.                                          |
+| `createdAt`   | timestamp         | yes      | Set by the system when the todo is created. Never changes.       |
+| `updatedAt`   | timestamp         | yes      | Set by the system on every edit.                                 |
+| `isCompleted` | boolean           | yes      | Starts as `false`.                                               |
+| `completedAt` | timestamp or null | —        | Set when the todo is marked done. Null while the todo is active. |
+| `quadrant`    | `Q1`–`Q4` or null | —        | Null means unsorted.                                             |
 
 **Invariant:** `completedAt` is set if and only if `isCompleted` is `true`.
 
@@ -40,12 +40,12 @@ Timestamps are stored in UTC and shown in the user's local time zone.
 
 ## 4. Eisenhower quadrants
 
-| ID | Urgent | Important | Label | Action |
-|---|---|---|---|---|
-| Q1 | yes | yes | Do Now | Do it right away. |
-| Q2 | no | yes | Schedule | Plan a time to do it. |
-| Q3 | yes | no | Delegate | Hand it to someone else. |
-| Q4 | no | no | Delete | Drop it. |
+| ID  | Urgent | Important | Label    | Action                   |
+| --- | ------ | --------- | -------- | ------------------------ |
+| Q1  | yes    | yes       | Do Now   | Do it right away.        |
+| Q2  | no     | yes       | Schedule | Plan a time to do it.    |
+| Q3  | yes    | no        | Delegate | Hand it to someone else. |
+| Q4  | no     | no        | Delete   | Drop it.                 |
 
 Q4's label "Delete" is a suggestion to the user. Putting a todo in Q4
 **does not** delete it.
@@ -136,17 +136,17 @@ sync between devices, and it is lost if the user clears their site data.
 
 ### 7.1 Decided (2026-11-20)
 
-| # | Question | Decision |
-|---|---|---|
-| Q1 | Platform | **Web app.** |
-| Q2 | Users and storage | **One user. Data is stored on the user's own device.** No accounts and no server-side storage. |
-| Q3 | Can a completed todo be marked not done again? | **Yes.** `completedAt` is cleared (FR-6). |
-| Q4 | Do completed todos appear in the matrix? | **No by default.** A "show completed" toggle is available (FR-15). |
-| Q5 | Is "Unsorted" allowed? | **Yes.** New todos go to Unsorted unless the user picks a quadrant. |
-| Q6 | Custom ordering within a quadrant | **Not in v1.** |
-| Q7 | How deletion is confirmed | **A confirmation dialog** (proposed default, not changed). |
-| Q8 | "Delete all in Q4" action | **Not in v1.** |
-| Q9 | Due dates, tags, or "delegated to" | **Not in v1.** |
+| #   | Question                                       | Decision                                                                                       |
+| --- | ---------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Q1  | Platform                                       | **Web app.**                                                                                   |
+| Q2  | Users and storage                              | **One user. Data is stored on the user's own device.** No accounts and no server-side storage. |
+| Q3  | Can a completed todo be marked not done again? | **Yes.** `completedAt` is cleared (FR-6).                                                      |
+| Q4  | Do completed todos appear in the matrix?       | **No by default.** A "show completed" toggle is available (FR-15).                             |
+| Q5  | Is "Unsorted" allowed?                         | **Yes.** New todos go to Unsorted unless the user picks a quadrant.                            |
+| Q6  | Custom ordering within a quadrant              | **Not in v1.**                                                                                 |
+| Q7  | How deletion is confirmed                      | **A confirmation dialog** (proposed default, not changed).                                     |
+| Q8  | "Delete all in Q4" action                      | **Not in v1.**                                                                                 |
+| Q9  | Due dates, tags, or "delegated to"             | **Not in v1.**                                                                                 |
 
 | Q10 | Tech stack | **See section 10.** The app is front-end only with no backend. It will not be a PWA in v1. |
 
@@ -176,18 +176,18 @@ import/export.
 
 ## 10. Technology stack (decided 2026-11-20)
 
-| Concern | Choice | Reason |
-|---|---|---|
-| Language | TypeScript (strict mode) | The compiler can check the data model's rules, such as the `completedAt` invariant. |
-| UI framework | React | Large ecosystem, and good accessible drag-and-drop libraries. |
-| Routing | TanStack Router (file-based) + Zod | URL search params with type-checked values, such as the status filter. Chosen partly as a chance to learn TanStack Router. |
-| Build tool and dev server | Vite | Fast, and the standard choice for React with TypeScript. |
-| Storage | IndexedDB through Dexie | Saves each todo as its own record, so a change saves completely or not at all. Supports indexes and schema migrations. |
-| Drag-and-drop | dnd-kit | Supports the keyboard and screen readers (NFR-2, FR-14). |
-| Unit and component tests | Vitest + React Testing Library | Cover the business rules and components (NFR-6). |
-| End-to-end tests | Playwright | Cover the acceptance criteria in section 9 in a real browser. |
-| Backend | None | One user with data on their device (Q2). |
-| PWA / offline install | Not in v1 | — |
+| Concern                   | Choice                             | Reason                                                                                                                     |
+| ------------------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Language                  | TypeScript (strict mode)           | The compiler can check the data model's rules, such as the `completedAt` invariant.                                        |
+| UI framework              | React                              | Large ecosystem, and good accessible drag-and-drop libraries.                                                              |
+| Routing                   | TanStack Router (file-based) + Zod | URL search params with type-checked values, such as the status filter. Chosen partly as a chance to learn TanStack Router. |
+| Build tool and dev server | Vite                               | Fast, and the standard choice for React with TypeScript.                                                                   |
+| Storage                   | IndexedDB through Dexie            | Saves each todo as its own record, so a change saves completely or not at all. Supports indexes and schema migrations.     |
+| Drag-and-drop             | dnd-kit                            | Supports the keyboard and screen readers (NFR-2, FR-14).                                                                   |
+| Unit and component tests  | Vitest + React Testing Library     | Cover the business rules and components (NFR-6).                                                                           |
+| End-to-end tests          | Playwright                         | Cover the acceptance criteria in section 9 in a real browser.                                                              |
+| Backend                   | None                               | One user with data on their device (Q2).                                                                                   |
+| PWA / offline install     | Not in v1                          | —                                                                                                                          |
 
 **Architecture constraint:** all storage access goes through one
 `TodoRepository` interface. UI components never call Dexie directly. This
