@@ -1,6 +1,6 @@
 # ToDoPrioritizer — Requirements (Draft v0.1)
 
-Status: **v0.3 — all open questions decided; ready for architecture**
+Status: **v1.0 — implemented (M0–M7). Every requirement below is covered by automated tests; see the traceability table in `docs/ARCHITECTURE.md` §10.**
 Last updated: 2026-11-20
 
 ## 1. Purpose
@@ -96,13 +96,17 @@ Q4's label "Delete" is a suggestion to the user. Putting a todo in Q4
 - **FR-14 Assign.** The user can move a todo into a quadrant, between
   quadrants, or back to Unsorted. They can do this by drag-and-drop and also
   with a non-drag method (a menu or buttons) for accessibility and touch
-  screens.
+  screens. _(Implemented as a "Move" button on each card that shows the other
+  quadrants.)_
 - **FR-15** By default, the matrix shows only active todos. A "show
   completed" toggle also shows completed todos in their quadrants.
 - **FR-16** The user can add, edit, mark done, and remove a todo from the
   matrix view. All changes appear in the list view, and list changes appear
   in the matrix.
 - **FR-17** Each quadrant shows how many todos it has.
+- **FR-17a** A quadrant shows at most 50 cards at first, with a "Show N more"
+  button for the rest. The count always includes every todo. _(Added
+  2026-11-21 for NFR-4; see Q12.)_
 
 ### 5.5 Persistence
 
@@ -125,8 +129,16 @@ sync between devices, and it is lost if the user clears their site data.
   quadrants apart.
 - **NFR-3 Responsive.** The app works on desktop and on mobile screens
   (≥ 360px wide). On narrow screens, the matrix may stack its quadrants.
-- **NFR-4 Performance.** Each view loads and responds in under 200 ms with
-  1,000 todos.
+- **NFR-4 Performance.** With 1,000 todos:
+  - Interactions respond in under **200 ms**: changing the filter, completing
+    a todo, moving a todo, and switching views.
+  - Each view's cold page load finishes in under **1 s**.
+
+  _(Revised 2026-11-21, see Q11. The original "loads and responds in under
+  200 ms" can't be met for a cold load: with no todos, the app takes about
+  80–170 ms to start, and the browser's own IndexedDB read of 1,000 records
+  takes about 70–150 ms. It's checked by `npm run e2e:perf`.)_
+
 - **NFR-5 Data integrity.** Each change either saves completely or not at
   all. The `completedAt` invariant (section 3.1) always holds.
 - **NFR-6 Testability.** The business rules (validation, completion, and
@@ -136,19 +148,20 @@ sync between devices, and it is lost if the user clears their site data.
 
 ### 7.1 Decided (2026-11-20)
 
-| #   | Question                                       | Decision                                                                                       |
-| --- | ---------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Q1  | Platform                                       | **Web app.**                                                                                   |
-| Q2  | Users and storage                              | **One user. Data is stored on the user's own device.** No accounts and no server-side storage. |
-| Q3  | Can a completed todo be marked not done again? | **Yes.** `completedAt` is cleared (FR-6).                                                      |
-| Q4  | Do completed todos appear in the matrix?       | **No by default.** A "show completed" toggle is available (FR-15).                             |
-| Q5  | Is "Unsorted" allowed?                         | **Yes.** New todos go to Unsorted unless the user picks a quadrant.                            |
-| Q6  | Custom ordering within a quadrant              | **Not in v1.**                                                                                 |
-| Q7  | How deletion is confirmed                      | **A confirmation dialog** (proposed default, not changed).                                     |
-| Q8  | "Delete all in Q4" action                      | **Not in v1.**                                                                                 |
-| Q9  | Due dates, tags, or "delegated to"             | **Not in v1.**                                                                                 |
-
-| Q10 | Tech stack | **See section 10.** The app is front-end only with no backend. It will not be a PWA in v1. |
+| #   | Question                                       | Decision                                                                                               |
+| --- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Q1  | Platform                                       | **Web app.**                                                                                           |
+| Q2  | Users and storage                              | **One user. Data is stored on the user's own device.** No accounts and no server-side storage.         |
+| Q3  | Can a completed todo be marked not done again? | **Yes.** `completedAt` is cleared (FR-6).                                                              |
+| Q4  | Do completed todos appear in the matrix?       | **No by default.** A "show completed" toggle is available (FR-15).                                     |
+| Q5  | Is "Unsorted" allowed?                         | **Yes.** New todos go to Unsorted unless the user picks a quadrant.                                    |
+| Q6  | Custom ordering within a quadrant              | **Not in v1.**                                                                                         |
+| Q7  | How deletion is confirmed                      | **A confirmation dialog** (proposed default, not changed).                                             |
+| Q8  | "Delete all in Q4" action                      | **Not in v1.**                                                                                         |
+| Q9  | Due dates, tags, or "delegated to"             | **Not in v1.**                                                                                         |
+| Q10 | Tech stack                                     | **See section 10.** The app is front-end only with no backend. It will not be a PWA in v1.             |
+| Q11 | NFR-4 budgets (2026-11-21)                     | **Separate budgets:** under 200 ms for interactions, under 1 s for a cold page load, with 1,000 todos. |
+| Q12 | Large quadrants (2026-11-21)                   | **Show the first 50 cards per quadrant**, with "Show N more" (FR-17a).                                 |
 
 ### 7.2 Still open
 
@@ -160,7 +173,9 @@ Due dates and reminders, recurring todos, tags or projects, sharing and
 collaboration, a "delegated to" assignee, notifications, and data
 import/export.
 
-## 9. Acceptance criteria (examples)
+## 9. Acceptance criteria
+
+Each criterion is an end-to-end test in `e2e/acceptance.spec.ts`, run in Chromium and WebKit.
 
 - **AC-1:** Given an active todo, when the user marks it done, then it
   disappears from the Active filter, appears under Completed with today's

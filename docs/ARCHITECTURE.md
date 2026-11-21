@@ -1,6 +1,6 @@
 # ToDoPrioritizer — Architecture Plan (Draft v0.1)
 
-Status: **v0.2 — all decisions made; ready for M0**
+Status: **v1.0 — M0–M7 complete.** This document describes the code as built.
 Implements: `docs/REQUIREMENTS.md` v0.3
 
 ## 1. Overview
@@ -301,7 +301,7 @@ library throughout.
 | `QuadrantGrid` / `QuadrantCell` | The 2×2 grid with axis labels and counts.                                                            | FR-12, FR-17     |
 | `UnsortedTray`                  | Shows todos with no quadrant. It is also a drop target.                                              | FR-13            |
 | `DraggableTodoCard`             | A dnd-kit draggable card.                                                                            | FR-14            |
-| `QuadrantPicker`                | A menu ("Move to…") on every card, for users who can't or don't drag.                                | FR-14, NFR-2     |
+| `QuadrantPicker`                | A "Move" button on every card. It shows the other quadrants only while open (see §6.6).              | FR-14, NFR-2     |
 
 **Implementation notes (M4):**
 
@@ -364,9 +364,10 @@ pre-1.0. Everything specific to drag-and-drop is in `ui/matrix/dnd.ts`.
 - **Screen readers:** announcements use todo titles and quadrant names, for
   example "“Pay rent” is over Schedule." and "“Pay rent” moved to Schedule.".
   The instructions explain the keys and mention the "Move to" menu.
-- **Moving without dragging:** every card has a "Move to" native `<select>`
-  (`QuadrantPicker`). This satisfies FR-14's non-drag requirement without
-  custom menu code.
+- **Moving without dragging:** every card has a "Move" button (`QuadrantPicker`).
+  It uses the disclosure pattern: Escape closes it, and focus returns to the
+  button. Its choices are rendered only while it is open. An earlier version
+  used a `<select>` on every card, which was slow to render (§6.6).
 - **No reordering:** cards cannot be reordered within a quadrant (Q6).
 - **Known limitation:** dnd-kit decides the drop target after a re-render.
   Releasing at the exact instant the pointer reaches a target can drop the
@@ -417,16 +418,38 @@ The app uses CSS Modules and adds no styling library.
   and 2.2 A/AA rules. It covers light and dark mode, desktop and phone, both
   views, and the open dialogs, including validation errors.
 
+### 6.6 Performance (M7, NFR-4)
+
+`e2e/nfr4.perf.spec.ts` measures timings inside the page against the
+production build, with 1,000 todos (800 active, 200 completed). Run it with
+`npm run e2e:perf`. Profiling found three problems, fixed in this order:
+
+| Problem                                                                                                                     | Fix                                                                                                      | View switch (List → Matrix) |
+| --------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | --------------------------- |
+| 800 native `<select>` menus, 5 options each, one per card                                                                   | The "Move" menu renders its choices only while open                                                      | 1,024 → 417 ms              |
+| 800 draggable cards rendered at once                                                                                        | Each quadrant shows its first 50 cards (`ui/matrix/limits.ts`), then "Show N more" (FR-17a)              | 417 → ~260 ms               |
+| Layout (≈100 ms per switch): `1fr` grid columns measured every card's min-content, and cards off screen were still laid out | `minmax(0, 1fr)` columns, and `content-visibility: auto` with `contain-intrinsic-size` on cards and rows | ~260 → 64–149 ms            |
+
+- **`content-visibility: auto` side effect:** it implies paint containment, which
+  clipped the open Move menu. `.card:has(.movePanel)` switches it off while the
+  menu is open. The e2e tests caught this; the jsdom tests could not.
+- **Typical results now** (median of 7, after a warm-up run): interactions take
+  about 30–150 ms, and cold loads take about 200–300 ms. The budgets are
+  200 ms and 1 s.
+- **Noisy timings:** on a laptop, whole runs can be about 2.5× slower when the
+  CPU is throttled or busy. The perf config retries a failing test up to twice,
+  so a real regression still fails, and a pass on retry is reported as flaky.
+
 ## 7. Testing strategy
 
-| Level         | Tool                                          | What it covers                                                                                                                                                                               |
-| ------------- | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Unit          | Vitest                                        | All domain rules and selectors, using a fixed clock. This includes edge cases such as titles of 200 vs. 201 characters, titles that are only spaces, completing a todo twice, and reopening. |
-| Data contract | Vitest + `fake-indexeddb`                     | One suite run against both repository implementations, plus migration tests.                                                                                                                 |
-| Component     | Vitest + React Testing Library + `user-event` | Forms, filters, picking a quadrant without dragging, and the confirm dialog. Uses the in-memory repository.                                                                                  |
-| End-to-end    | Playwright (Chromium, Firefox, WebKit)        | AC-1 to AC-5, keeping data across reloads, keyboard drag-and-drop, and a mobile-size screen.                                                                                                 |
-| Accessibility | `@axe-core/playwright`                        | WCAG 2.x A/AA scans of both views and dialogs, light/dark, desktop/phone (NFR-2). Added in M6 (§6.5).                                                                                        |
-| Performance   | Playwright                                    | A test that loads 1,000 todos and checks that each view renders in under 200 ms (NFR-4).                                                                                                     |
+| Level         | Tool                                                                      | What it covers                                                                                                                                                                               |
+| ------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit          | Vitest                                                                    | All domain rules and selectors, using a fixed clock. This includes edge cases such as titles of 200 vs. 201 characters, titles that are only spaces, completing a todo twice, and reopening. |
+| Data contract | Vitest + `fake-indexeddb`                                                 | One suite run against both repository implementations, plus migration tests.                                                                                                                 |
+| Component     | Vitest + React Testing Library + `user-event`                             | Forms, filters, picking a quadrant without dragging, and the confirm dialog. Uses the in-memory repository.                                                                                  |
+| End-to-end    | Playwright (Chromium, WebKit; Firefox when the VC++ runtime is installed) | `acceptance.spec.ts` (AC-1–AC-5), `list.spec.ts`, `matrix.spec.ts` (mouse/keyboard drag, Move menu, phone layout), `smoke.spec.ts` (titles, skip link, storage).                             |
+| Accessibility | `@axe-core/playwright`                                                    | WCAG 2.x A/AA scans of both views and dialogs, light/dark, desktop/phone (NFR-2). Added in M6 (§6.5).                                                                                        |
+| Performance   | Playwright, own config                                                    | `nfr4.perf.spec.ts`, run with `npm run e2e:perf`: production build, 1,000 todos, interactions under 200 ms and cold loads under 1 s (§6.6).                                                  |
 
 **Coverage target:** 100% of the domain layer and at least 80% overall.
 
@@ -459,30 +482,30 @@ The app uses CSS Modules and adds no styling library.
 Each milestone is finished only when its tests pass and both lint and
 typecheck are clean.
 
-| #   | Milestone   | Deliverables                                                                                                                                                                                                                                                        |
-| --- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| M0  | Scaffold    | Vite + React + TS project, TanStack Router with its Vite plugin and placeholder `/` and `/matrix` routes, ESLint (including the Playwright and TanStack Router plugins), Prettier, Vitest, Playwright set up for all 3 browsers, a smoke test, and the npm scripts. |
-| M1  | Domain      | `todo.ts`, `todo.rules.ts`, `selectors.ts`, `quadrants.ts`, and full unit tests.                                                                                                                                                                                    |
-| M2  | Data        | The repository interface, Dexie and in-memory implementations, and the contract tests.                                                                                                                                                                              |
-| M3  | State       | `TodoProvider`, `TodoStore`, `TodoService`, the hooks, and `ErrorBanner`.                                                                                                                                                                                           |
-| M4  | List view   | Add, edit, delete with confirmation, complete and reopen, filters, and empty states. Component tests.                                                                                                                                                               |
-| M5  | Matrix view | The grid, Unsorted tray, dnd-kit, `QuadrantPicker`, counts, and the show-completed toggle. Component tests.                                                                                                                                                         |
-| M6  | Polish      | Responsive layout, an accessibility pass, and error states.                                                                                                                                                                                                         |
-| M7  | E2E         | Playwright specs for AC-1–AC-5, plus the accessibility and performance checks.                                                                                                                                                                                      |
+| #   | Milestone   | Deliverables                                                                                                                                                                                                                                                          |
+| --- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| M0  | Scaffold    | Vite + React + TS project, TanStack Router with its Vite plugin and placeholder `/` and `/matrix` routes, ESLint (including the Playwright and TanStack Router plugins), Prettier, Vitest, Playwright set up for all 3 browsers, a smoke test, and the npm scripts. ✔ |
+| M1  | Domain      | `todo.ts`, `todo.rules.ts`, `selectors.ts`, `quadrants.ts`, and full unit tests. ✔                                                                                                                                                                                    |
+| M2  | Data        | The repository interface, Dexie and in-memory implementations, and the contract tests. ✔                                                                                                                                                                              |
+| M3  | State       | `TodoProvider`, `TodoStore`, `TodoService`, the hooks, and `ErrorBanner`. ✔                                                                                                                                                                                           |
+| M4  | List view   | Add, edit, delete with confirmation, complete and reopen, filters, and empty states. Component tests. ✔                                                                                                                                                               |
+| M5  | Matrix view | The grid, Unsorted tray, dnd-kit, `QuadrantPicker`, counts, and the show-completed toggle. Component tests. ✔                                                                                                                                                         |
+| M6  | Polish      | Responsive layout, an accessibility pass, and error states. ✔                                                                                                                                                                                                         |
+| M7  | E2E         | `acceptance.spec.ts` (AC-1–AC-5), the NFR-4 performance suite and the fixes it led to (§6.6), and final docs. Accessibility checks landed in M6. ✔                                                                                                                    |
 
 ## 10. Requirement traceability
 
-| Requirement  | Where it is implemented                                                    | Verified by                                           |
-| ------------ | -------------------------------------------------------------------------- | ----------------------------------------------------- |
-| FR-1–2, FR-4 | `todo.rules.ts`, `TodoForm`                                                | unit, component, AC-2, AC-4                           |
-| FR-3         | `TodoService.remove`, `ConfirmDialog`                                      | component, AC-5                                       |
-| FR-5–7       | `completeTodo` / `reopenTodo`, `TodoItem`                                  | unit, AC-1                                            |
-| FR-8–11      | `selectors.ts`, `ListView`, `FilterTabs`, `routes/index.tsx` search schema | unit, component, e2e (`?status=` deep link + default) |
-| FR-12–17     | `groupByQuadrant`, `MatrixView`, dnd-kit, `QuadrantPicker`                 | unit, component, AC-3                                 |
-| FR-18–19     | `DexieTodoRepository`                                                      | contract, e2e reload                                  |
-| NFR-2        | jsx-a11y, dnd-kit `KeyboardSensor`, axe                                    | e2e (axe)                                             |
-| NFR-4        | in-memory filtering                                                        | e2e performance check                                 |
-| NFR-5        | single-record transactions, `Todo` types                                   | contract, typecheck                                   |
+| Requirement  | Where it is implemented                                                                 | Verified by                                           |
+| ------------ | --------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| FR-1–2, FR-4 | `todo.rules.ts`, `TodoForm`                                                             | unit, component, AC-2, AC-4                           |
+| FR-3         | `TodoService.remove`, `ConfirmDialog`                                                   | component, AC-5                                       |
+| FR-5–7       | `completeTodo` / `reopenTodo`, `TodoItem`                                               | unit, AC-1                                            |
+| FR-8–11      | `selectors.ts`, `ListView`, `FilterTabs`, `routes/index.tsx` search schema              | unit, component, e2e (`?status=` deep link + default) |
+| FR-12–17a    | `groupByQuadrant`, `MatrixView`, `QuadrantCell` (card limit), dnd-kit, `QuadrantPicker` | unit, component, `matrix.spec.ts`, AC-3               |
+| FR-18–19     | `DexieTodoRepository`                                                                   | contract, e2e reload                                  |
+| NFR-2        | jsx-a11y, dnd-kit `KeyboardSensor`, axe                                                 | e2e (axe)                                             |
+| NFR-4        | in-memory filtering, card limit, on-demand Move menu, `content-visibility`              | `nfr4.perf.spec.ts`                                   |
+| NFR-5        | single-record transactions, `Todo` types                                                | contract, typecheck                                   |
 
 ## 11. Decisions
 

@@ -6,6 +6,7 @@ import type { Todo } from '../../domain/todo';
 import { createControllableRepository } from '../../test/ControllableRepository';
 import { activeTodo, completedTodo, T2 } from '../../test/fixtures';
 import { renderWithRouter } from '../../test/renderWithRouter';
+import { CARD_LIMIT } from './limits';
 
 async function renderMatrix(path: string, todos: readonly Todo[] = []) {
   const repository = new InMemoryTodoRepository(todos);
@@ -22,6 +23,17 @@ async function renderMatrix(path: string, todos: readonly Todo[] = []) {
 
 /** The drop target section with this heading, e.g. "Do Now" or "Unsorted". */
 const cell = (name: string) => screen.getByRole('region', { name: new RegExp(`^${name}`) });
+
+/** Moves a todo with its card's "Move" button and the choice named `target`. */
+async function moveWithMenu(
+  user: ReturnType<typeof userEvent.setup>,
+  title: string,
+  target: string,
+) {
+  await user.click(screen.getByRole('button', { name: `Move “${title}”` }));
+  const choices = screen.getByRole('group', { name: `Move “${title}” to` });
+  await user.click(within(choices).getByRole('button', { name: target }));
+}
 
 const titlesIn = (name: string) =>
   within(cell(name))
@@ -51,6 +63,35 @@ describe('MatrixView', () => {
       }
       expect(titlesIn('Schedule')).toEqual(expect.arrayContaining(['Plan', 'Plan more']));
       expect(titlesIn('Unsorted')).toEqual(['Inbox']);
+    });
+
+    it(`shows the first ${String(CARD_LIMIT)} cards per quadrant, with "Show N more" (NFR-4)`, async () => {
+      const many = Array.from({ length: CARD_LIMIT + 7 }, (_, i) =>
+        activeTodo({ title: `Busy ${String(i)}`, quadrant: 'Q1' }),
+      );
+      const { user } = await renderMatrix('/matrix', many);
+
+      expect(within(cell('Do Now')).getByRole('heading', { level: 2 })).toHaveTextContent(
+        `Do Now ${String(CARD_LIMIT + 7)}`,
+      );
+      expect(titlesIn('Do Now')).toHaveLength(CARD_LIMIT);
+
+      const more = within(cell('Do Now')).getByRole('button', { name: 'Show 7 more in Do Now' });
+      expect(more).toHaveAttribute('aria-expanded', 'false');
+      await user.click(more);
+      expect(titlesIn('Do Now')).toHaveLength(CARD_LIMIT + 7);
+
+      await user.click(
+        within(cell('Do Now')).getByRole('button', { name: 'Show fewer in Do Now' }),
+      );
+      expect(titlesIn('Do Now')).toHaveLength(CARD_LIMIT);
+    });
+
+    it('has no "Show more" button when everything fits', async () => {
+      await renderMatrix('/matrix', [activeTodo({ quadrant: 'Q1' })]);
+      expect(
+        within(cell('Do Now')).queryByRole('button', { name: /show/i }),
+      ).not.toBeInTheDocument();
     });
 
     it('says in each quadrant whether it is urgent and important', async () => {
@@ -131,7 +172,7 @@ describe('MatrixView', () => {
       const todo = activeTodo({ title: 'Taxes', quadrant: null });
       const { user, repository } = await renderMatrix('/matrix', [todo]);
 
-      await user.selectOptions(screen.getByLabelText('Move “Taxes” to'), 'Q2');
+      await moveWithMenu(user, 'Taxes', 'Schedule');
 
       expect(titlesIn('Schedule')).toEqual(['Taxes']);
       expect(titlesIn('Unsorted')).toEqual([]);
@@ -145,7 +186,7 @@ describe('MatrixView', () => {
     it('moves a todo back to Unsorted', async () => {
       const todo = activeTodo({ title: 'Undecided', quadrant: 'Q4' });
       const { user, repository } = await renderMatrix('/matrix', [todo]);
-      await user.selectOptions(screen.getByLabelText('Move “Undecided” to'), 'Unsorted');
+      await moveWithMenu(user, 'Undecided', 'Unsorted');
       await waitFor(async () => {
         expect((await repository.get(todo.id))?.quadrant).toBeNull();
       });
@@ -157,11 +198,46 @@ describe('MatrixView', () => {
       const { user, repository } = await renderMatrix('/matrix', [todo]);
       vi.spyOn(repository, 'put').mockRejectedValue(new Error('quota exceeded'));
 
-      await user.selectOptions(screen.getByLabelText('Move “Stuck” to'), 'Q1');
+      await moveWithMenu(user, 'Stuck', 'Do Now');
 
       expect(await screen.findByRole('alert')).toHaveTextContent(/couldn't be saved/i);
       expect(titlesIn('Delegate')).toEqual(['Stuck']);
       expect(titlesIn('Do Now')).toEqual([]);
+    });
+
+    it('the Move menu opens on demand, offers the other quadrants, and focuses the first', async () => {
+      await renderMatrix('/matrix', [activeTodo({ title: 'Pick', quadrant: 'Q2' })]);
+      const user = userEvent.setup();
+      const toggle = screen.getByRole('button', { name: 'Move “Pick”' });
+      expect(toggle).toHaveAttribute('aria-expanded', 'false');
+      expect(screen.queryByRole('group', { name: 'Move “Pick” to' })).not.toBeInTheDocument();
+
+      await user.click(toggle);
+      expect(toggle).toHaveAttribute('aria-expanded', 'true');
+      const choices = within(screen.getByRole('group', { name: 'Move “Pick” to' }))
+        .getAllByRole('button')
+        .map((b) => b.textContent);
+      expect(choices).toEqual(['Do Now', 'Delegate', 'Delete', 'Unsorted']);
+      expect(screen.getByRole('button', { name: 'Do Now' })).toHaveFocus();
+    });
+
+    it('Escape closes the Move menu and returns focus to its button', async () => {
+      await renderMatrix('/matrix', [activeTodo({ title: 'Esc', quadrant: 'Q1' })]);
+      const user = userEvent.setup();
+      await user.click(screen.getByRole('button', { name: 'Move “Esc”' }));
+      await user.keyboard('{Escape}');
+      expect(screen.queryByRole('group', { name: 'Move “Esc” to' })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Move “Esc”' })).toHaveFocus();
+    });
+
+    it('a click outside closes the Move menu without moving anything', async () => {
+      const todo = activeTodo({ title: 'Outside', quadrant: 'Q1' });
+      const { repository } = await renderMatrix('/matrix', [todo]);
+      const user = userEvent.setup();
+      await user.click(screen.getByRole('button', { name: 'Move “Outside”' }));
+      await user.click(screen.getByRole('heading', { level: 1 }));
+      expect(screen.queryByRole('group', { name: 'Move “Outside” to' })).not.toBeInTheDocument();
+      expect(await repository.get(todo.id)).toEqual(todo);
     });
 
     it('gives every card a keyboard drag handle', async () => {
@@ -235,7 +311,7 @@ describe('MatrixView', () => {
   it('shows the same data as the List view (FR-16)', async () => {
     const todo = activeTodo({ title: 'Shared', quadrant: null });
     const { user, router } = await renderMatrix('/matrix', [todo]);
-    await user.selectOptions(screen.getByLabelText('Move “Shared” to'), 'Q1');
+    await moveWithMenu(user, 'Shared', 'Do Now');
 
     await act(() => router.navigate({ to: '/' }));
     const row = await screen.findByRole('listitem');

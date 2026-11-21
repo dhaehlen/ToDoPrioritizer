@@ -1,9 +1,10 @@
 import { useDroppable } from '@dnd-kit/core';
-import { useId, type ReactNode } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import { QUADRANT_INFO } from '../../domain/quadrants';
 import type { Quadrant, Todo } from '../../domain/todo';
 import { cx } from '../../lib/cx';
 import { targetId } from './dnd';
+import { CARD_LIMIT } from './limits';
 import styles from './MatrixView.module.css';
 
 export interface QuadrantCellProps {
@@ -20,6 +21,9 @@ export function QuadrantCell({ quadrant, todos, onAdd, renderTodo }: QuadrantCel
   const { setNodeRef, isOver } = useDroppable({ id: targetId(quadrant) });
   const info = quadrant ? QUADRANT_INFO[quadrant] : null;
   const label = info?.label ?? 'Unsorted';
+  const [showAll, setShowAll] = useState(false);
+  const hidden = showAll ? 0 : Math.max(0, todos.length - CARD_LIMIT);
+  const shown = hidden > 0 ? todos.slice(0, CARD_LIMIT) : todos;
 
   return (
     <section
@@ -49,9 +53,26 @@ export function QuadrantCell({ quadrant, todos, onAdd, renderTodo }: QuadrantCel
         </button>
       </header>
       {todos.length > 0 ? (
-        <ul className={styles.cards} aria-labelledby={headingId}>
-          {todos.map(renderTodo)}
-        </ul>
+        <>
+          <ul className={styles.cards} aria-labelledby={headingId}>
+            {shown.map(renderTodo)}
+          </ul>
+          {(hidden > 0 || (showAll && todos.length > CARD_LIMIT)) && (
+            <button
+              type="button"
+              className={styles.showMore}
+              aria-expanded={showAll}
+              aria-label={
+                showAll ? `Show fewer in ${label}` : `Show ${String(hidden)} more in ${label}`
+              }
+              onClick={() => {
+                setShowAll((v) => !v);
+              }}
+            >
+              {showAll ? 'Show fewer' : `Show ${String(hidden)} more`}
+            </button>
+          )}
+        </>
       ) : (
         <p className={styles.cellEmpty}>{info ? 'Drop todos here.' : 'Nothing to sort.'}</p>
       )}

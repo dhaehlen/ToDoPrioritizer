@@ -1,6 +1,10 @@
 .item {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  /* Skip layout and paint for rows that are off screen (NFR-4). They stay in
+     the accessibility tree and in find-in-page. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 5rem;
   align-items: start;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
@@ -103,7 +107,7 @@
 
 @media (max-width: 480px) {
   .item {
-    grid-template-columns: auto 1fr;
+    grid-template-columns: auto minmax(0, 1fr);
   }
   .actions {
     grid-column: 2;

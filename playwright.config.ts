@@ -5,6 +5,8 @@ const isCI = !!process.env.CI;
 
 export default defineConfig({
   testDir: './e2e',
+  // Timing tests run on their own against a production build: see playwright.perf.config.ts.
+  testIgnore: '**/*.perf.spec.ts',
   fullyParallel: true,
   forbidOnly: isCI,
   retries: isCI ? 2 : 0,

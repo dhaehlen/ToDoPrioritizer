@@ -44,7 +44,8 @@
 /* Unsorted tray beside the matrix on wide screens, above it on narrow ones (FR-13). */
 .layout {
   display: grid;
-  grid-template-columns: 18rem 1fr;
+  /* minmax(0, …) avoids measuring every card's min-content width (NFR-4). */
+  grid-template-columns: 18rem minmax(0, 1fr);
   gap: var(--space-4);
   align-items: start;
 }
@@ -52,7 +53,7 @@
 /* 2×2 grid with axis labels: corner, two column labels, then two rows. */
 .matrix {
   display: grid;
-  grid-template-columns: auto 1fr 1fr;
+  grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr);
   grid-auto-rows: auto;
   gap: var(--space-2);
 }
@@ -166,6 +167,23 @@
   background: var(--color-hover);
 }
 
+.showMore {
+  margin-top: var(--space-2);
+  font: inherit;
+  font-size: 0.875rem;
+  padding: var(--space-1) var(--space-3);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.showMore:hover {
+  color: var(--color-text);
+  background: var(--color-hover);
+}
+
 .cellEmpty {
   flex: 1;
   display: grid;
@@ -189,7 +207,7 @@
 
 .card {
   display: grid;
-  grid-template-columns: auto auto 1fr;
+  grid-template-columns: auto auto minmax(0, 1fr);
   align-items: center;
   gap: var(--space-1) var(--space-2);
   padding: var(--space-2);
@@ -198,6 +216,16 @@
   background: var(--color-bg);
   cursor: grab;
   touch-action: manipulation;
+  /* Skip layout and paint for cards that are off screen (NFR-4). They stay in
+     the accessibility tree and in find-in-page. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 4.5rem;
+}
+
+/* content-visibility: auto implies paint containment, which would clip the
+   open Move menu to the card. Turn it off while the menu is open. */
+.card:has(.movePanel) {
+  content-visibility: visible;
 }
 
 .card[data-completed] .cardTitle {
@@ -256,15 +284,41 @@
   gap: var(--space-1);
 }
 
-.picker {
-  font: inherit;
-  font-size: 0.8125rem;
-  padding: 0 var(--space-1);
+.move {
+  position: relative;
+}
+
+/* The "Move" choices, shown under the button only while open. */
+.movePanel {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  left: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  min-width: 9rem;
+  padding: var(--space-1);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   background: var(--color-surface);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.18);
+}
+
+.moveChoice {
+  font: inherit;
+  font-size: 0.875rem;
+  padding: var(--space-1) var(--space-2);
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
   color: var(--color-text);
+  text-align: left;
   cursor: pointer;
+}
+
+.moveChoice:hover,
+.moveChoice:focus-visible {
+  background: var(--color-hover);
 }
 
 .cardAction {
@@ -286,7 +340,7 @@
 /* Narrower screens: put the tray above the matrix. */
 @media (max-width: 960px) {
   .layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .cell[data-quadrant='unsorted'] {
     min-height: auto;
@@ -297,7 +351,7 @@
    Each quadrant still says whether it is urgent and important. */
 @media (max-width: 640px) {
   .matrix {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .corner,
   .axis {
@@ -311,8 +365,8 @@
 /* Touch screens: make the small card controls easier to hit. */
 @media (pointer: coarse) {
   .handle,
-  .picker,
   .cardAction,
+  .moveChoice,
   .cellAdd {
     min-height: 2.5rem;
   }

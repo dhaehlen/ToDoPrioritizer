@@ -1,50 +1,5 @@
-import { expect, test, type Locator, type Page } from '@playwright/test';
-
-// Each Playwright test gets a fresh browser context, so IndexedDB starts empty.
-
-/** dnd-kit's screen-reader live region, which announces each step of a drag. */
-const dragAnnouncer = (page: Page) => page.locator('[id^="DndLiveRegion"]');
-
-/**
- * Presses a key during a keyboard drag, then waits for the announcement that
- * confirms it. (dnd-kit starts listening for keys just after pick-up, so a
- * key pressed in the same instant would be lost.)
- */
-async function dragKey(page: Page, key: string, announcement: RegExp) {
-  await page.keyboard.press(key);
-  await expect(dragAnnouncer(page)).toHaveText(announcement);
-}
-
-const cell = (page: Page, name: string) =>
-  page.getByRole('region', { name: new RegExp(`^${name}`) });
-
-async function addTo(page: Page, where: string, title: string) {
-  await page.getByRole('button', { name: `Add todo to ${where}` }).click();
-  const dialog = page.getByRole('dialog', { name: 'Add todo' });
-  await dialog.getByLabel('Title').fill(title);
-  await dialog.getByRole('button', { name: 'Add todo' }).click();
-  await expect(dialog).toBeHidden();
-  await expect(cell(page, where).getByText(title, { exact: true })).toBeVisible();
-}
-
-/**
- * Drags with real mouse events: press, move in small steps, then release once
- * the target is highlighted (announced), as a person would. dnd-kit updates
- * the drop target after a re-render, so releasing at the very instant the
- * pointer arrives can drop on the previous target.
- */
-async function dragWithMouse(page: Page, source: Locator, target: Locator, targetName: string) {
-  const from = await source.boundingBox();
-  const to = await target.boundingBox();
-  if (!from || !to) throw new Error('Drag source or target is not visible');
-  const start = { x: from.x + from.width / 2, y: from.y + from.height / 2 };
-  await page.mouse.move(start.x, start.y);
-  await page.mouse.down();
-  await page.mouse.move(start.x + 12, start.y + 4, { steps: 4 }); // pass the activation distance
-  await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 12 });
-  await expect(dragAnnouncer(page)).toHaveText(new RegExp(`is over ${targetName}`));
-  await page.mouse.up();
-}
+import { expect, test } from '@playwright/test';
+import { addToCell as addTo, cell, dragKey, dragWithMouse } from './helpers';
 
 test.describe('matrix view', () => {
   test.beforeEach(async ({ page }) => {
@@ -99,9 +54,13 @@ test.describe('matrix view', () => {
     await expect(cell(page, 'Schedule').getByText('Stay put', { exact: true })).toBeHidden();
   });
 
-  test('moves a todo with the "Move to" menu', async ({ page }) => {
+  test('moves a todo with the "Move" menu', async ({ page }) => {
     await addTo(page, 'Unsorted', 'Menu move');
-    await page.getByLabel('Move “Menu move” to').selectOption({ label: 'Delegate' });
+    await page.getByRole('button', { name: 'Move “Menu move”' }).click();
+    await page
+      .getByRole('group', { name: 'Move “Menu move” to' })
+      .getByRole('button', { name: 'Delegate' })
+      .click();
     await expect(cell(page, 'Delegate').getByText('Menu move', { exact: true })).toBeVisible();
   });
 
@@ -117,7 +76,11 @@ test.describe('matrix view', () => {
 
   test('a move in the matrix shows in the list view (FR-16)', async ({ page }) => {
     await addTo(page, 'Unsorted', 'Both views');
-    await page.getByLabel('Move “Both views” to').selectOption({ label: 'Do Now' });
+    await page.getByRole('button', { name: 'Move “Both views”' }).click();
+    await page
+      .getByRole('group', { name: 'Move “Both views” to' })
+      .getByRole('button', { name: 'Do Now' })
+      .click();
     await page.getByRole('link', { name: 'List' }).click();
     await expect(page.getByRole('listitem').filter({ hasText: 'Both views' })).toContainText(
       'Do Now',
