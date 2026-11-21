@@ -59,6 +59,17 @@ describe('ListView', () => {
       expect(titlesInList()).toEqual(['Done first', 'Newer active', 'Older active', 'Done last']);
     });
 
+    it.each(['/', '/?status=completed', '/?status=all'])(
+      'marks exactly one filter as current at %s',
+      async (path) => {
+        await renderList(path, todos);
+        const current = within(screen.getByRole('navigation', { name: 'Filter todos' }))
+          .getAllByRole('link')
+          .filter((link) => link.getAttribute('aria-current') === 'page');
+        expect(current).toHaveLength(1);
+      },
+    );
+
     it('treats an invalid status as Active and cleans up the URL', async () => {
       const { router } = await renderList('/?status=bogus', todos);
       expect(titlesInList()).toEqual(['Newer active', 'Older active']);
@@ -98,6 +109,28 @@ describe('ListView', () => {
         ctl.emit([]);
       });
       expect(screen.queryByText(/loading your todos/i)).not.toBeInTheDocument();
+    });
+
+    it('says todos can’t be shown (not "no todos yet") when storage fails before loading', async () => {
+      const ctl = createControllableRepository();
+      await renderWithRouter('/', { repository: ctl.repo });
+      act(() => {
+        ctl.fail(new Error('IndexedDB unavailable'));
+      });
+      expect(screen.getByText(/can’t be shown until browser storage/i)).toBeInTheDocument();
+      expect(screen.queryByText(/no todos yet/i)).not.toBeInTheDocument();
+    });
+
+    it('keeps showing the last loaded todos if storage fails later', async () => {
+      const ctl = createControllableRepository();
+      await renderWithRouter('/', { repository: ctl.repo });
+      act(() => {
+        ctl.emit([activeTodo({ title: 'Still here' })]);
+      });
+      act(() => {
+        ctl.fail(new Error('IndexedDB unavailable'));
+      });
+      expect(screen.getByRole('checkbox', { name: 'Still here' })).toBeInTheDocument();
     });
 
     it('invites the user to add a first todo when there are none', async () => {

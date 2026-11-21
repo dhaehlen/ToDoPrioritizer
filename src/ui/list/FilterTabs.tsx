@@ -9,7 +9,6 @@ const LABELS: Record<StatusFilter, string> = {
 };
 
 export interface FilterTabsProps {
-  current: StatusFilter;
   counts: Readonly<Record<StatusFilter, number>>;
 }
 
@@ -18,7 +17,7 @@ export interface FilterTabsProps {
  * `?status=` in the URL, so the filter survives a reload and works with the
  * Back button.
  */
-export function FilterTabs({ current, counts }: FilterTabsProps) {
+export function FilterTabs({ counts }: FilterTabsProps) {
   return (
     <nav aria-label="Filter todos" className={styles.filters}>
       {(['active', 'completed', 'all'] as const).map((status) => (
@@ -27,7 +26,10 @@ export function FilterTabs({ current, counts }: FilterTabsProps) {
           to="/"
           search={{ status }}
           className={styles.filter}
-          aria-current={status === current ? 'page' : undefined}
+          // Compare the whole search, not a partial match. Otherwise the Active
+          // link (whose URL is just "/") also counts as active on "/?status=all".
+          // When active, Link sets aria-current="page" itself.
+          activeOptions={{ exact: true }}
         >
           {LABELS[status]} <span className={styles.count}>{counts[status]}</span>
         </Link>

@@ -67,6 +67,16 @@ describe('MatrixView', () => {
       expect(cell('Unsorted')).toHaveTextContent('Nothing to sort.');
     });
 
+    it('says todos can’t be shown when storage fails before loading', async () => {
+      const ctl = createControllableRepository();
+      await renderWithRouter('/matrix', { repository: ctl.repo });
+      act(() => {
+        ctl.fail(new Error('IndexedDB unavailable'));
+      });
+      expect(screen.getByText(/can’t be shown until browser storage/i)).toBeInTheDocument();
+      expect(screen.queryByRole('region', { name: /^Do Now/ })).not.toBeInTheDocument();
+    });
+
     it('shows a loading message until storage answers', async () => {
       const ctl = createControllableRepository();
       await renderWithRouter('/matrix', { repository: ctl.repo });

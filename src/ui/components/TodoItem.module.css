@@ -109,3 +109,11 @@
     grid-column: 2;
   }
 }
+
+/* Touch screens: make Edit and Delete easier to hit. */
+@media (pointer: coarse) {
+  .action {
+    min-height: 2.5rem;
+    padding-inline: var(--space-3);
+  }
+}

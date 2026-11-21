@@ -14,5 +14,6 @@ const matrixSearchSchema = z.object({
 export const Route = createFileRoute('/matrix')({
   validateSearch: matrixSearchSchema,
   search: { middlewares: [stripSearchParams({ completed: false })] },
+  head: () => ({ meta: [{ title: 'Eisenhower Matrix · ToDoPrioritizer' }] }),
   component: MatrixView,
 });

@@ -95,6 +95,10 @@ export default defineConfig([
     files: ['e2e/**/*.ts'],
     extends: [playwright.configs['flat/recommended']],
     languageOptions: { globals: globals.node },
+    rules: {
+      // Allow browser-specific skips like test.skip(browserName === 'webkit', 'reason').
+      'playwright/no-skipped-test': ['warn', { allowConditional: true }],
+    },
   },
 
   // Tooling config files

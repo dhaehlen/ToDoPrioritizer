@@ -49,11 +49,15 @@ export function ListView() {
         </button>
       </div>
 
-      <FilterTabs current={filter} counts={counts} />
+      <FilterTabs counts={counts} />
 
       {status === 'loading' ? (
         <p aria-busy="true" className={styles.empty}>
           Loading your todos…
+        </p>
+      ) : status === 'error' && todos.length === 0 ? (
+        <p className={styles.empty}>
+          Your todos can’t be shown until browser storage is available again.
         </p>
       ) : visible.length === 0 ? (
         <p className={styles.empty}>{emptyMessage(filter, counts.all)}</p>

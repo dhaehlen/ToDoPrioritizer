@@ -17,5 +17,6 @@ export const Route = createFileRoute('/')({
   validateSearch: listSearchSchema,
   // Leave the default out of the URL: Active is just "/", not "/?status=active".
   search: { middlewares: [stripSearchParams({ status: DEFAULT_STATUS_FILTER })] },
+  head: () => ({ meta: [{ title: 'Todos · ToDoPrioritizer' }] }),
   component: ListView,
 });

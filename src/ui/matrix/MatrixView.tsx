@@ -137,6 +137,10 @@ export function MatrixView() {
         <p aria-busy="true" className={styles.loading}>
           Loading your todos…
         </p>
+      ) : status === 'error' && storedTodos.length === 0 ? (
+        <p className={styles.loading}>
+          Your todos can’t be shown until browser storage is available again.
+        </p>
       ) : (
         <DndContext
           sensors={sensors}

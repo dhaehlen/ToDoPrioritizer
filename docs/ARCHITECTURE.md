@@ -381,10 +381,41 @@ shared by `TodoItem` (list) and `TodoCard` (matrix).
 
 ### 6.4 Styling and responsiveness
 
-The app uses CSS Modules and adds no styling library. Colors and spacing are
-defined as CSS custom properties. Each quadrant is identified by its text
-label and an icon as well as its color (NFR-2). Screens narrower than 640px
-show the four quadrants stacked in one column, Q1 to Q4 (NFR-3).
+The app uses CSS Modules and adds no styling library.
+
+- **Theme:** colors and spacing are CSS custom properties in `ui/global.css`.
+  Dark mode follows `prefers-color-scheme`.
+- **Quadrants aren't color-only:** each one is named in text and also says
+  whether it is urgent and important. Color is only a hint (NFR-2).
+- **Layout by screen width:**
+  - **960 px and wider:** the Unsorted tray (18 rem) sits beside the matrix.
+  - **Narrower than 960 px:** the tray moves above the matrix.
+  - **Narrower than 640 px:** the quadrants stack in one column, Q1 to Q4,
+    without axis labels (NFR-3).
+
+### 6.5 Accessibility and polish (M6)
+
+- **Skip link:** "Skip to main content" is the first Tab stop. It moves focus
+  to `<main>` directly rather than using a `#main` URL, so the router's URL
+  stays clean.
+- **Page titles:** each route sets its own title through its `head` option, and
+  `<HeadContent />` renders it from the app shell. React 19 hoists `<title>`
+  into `<head>`. `index.html` has no `<title>` of its own, which avoids a
+  duplicate.
+- **Filter tabs:** they use `activeOptions={{ exact: true }}`. TanStack's
+  `<Link>` matches search params partially by default. Without this, the
+  Active link (`/`) also counted as active on `/?status=all`.
+- **Error state:** if storage fails before anything has loaded, both views say
+  the todos can't be shown, not "No todos yet". If it fails later, the last
+  loaded todos stay visible. In both cases the banner explains the problem.
+- **Touch targets:** on touch screens (`pointer: coarse`), small controls such
+  as Edit, Delete, the "Move to" menu, the drag handle, and "+ Add" are at
+  least 40 px tall.
+- **Reduced motion:** when the user asks for reduced motion, transitions and
+  animations are turned off.
+- **Automated checks:** `e2e/a11y.spec.ts` runs axe with the WCAG 2.0, 2.1,
+  and 2.2 A/AA rules. It covers light and dark mode, desktop and phone, both
+  views, and the open dialogs, including validation errors.
 
 ## 7. Testing strategy
 
@@ -394,7 +425,7 @@ show the four quadrants stacked in one column, Q1 to Q4 (NFR-3).
 | Data contract | Vitest + `fake-indexeddb`                     | One suite run against both repository implementations, plus migration tests.                                                                                                                 |
 | Component     | Vitest + React Testing Library + `user-event` | Forms, filters, picking a quadrant without dragging, and the confirm dialog. Uses the in-memory repository.                                                                                  |
 | End-to-end    | Playwright (Chromium, Firefox, WebKit)        | AC-1 to AC-5, keeping data across reloads, keyboard drag-and-drop, and a mobile-size screen.                                                                                                 |
-| Accessibility | `@axe-core/playwright`                        | Automated checks of both views (NFR-2).                                                                                                                                                      |
+| Accessibility | `@axe-core/playwright`                        | WCAG 2.x A/AA scans of both views and dialogs, light/dark, desktop/phone (NFR-2). Added in M6 (§6.5).                                                                                        |
 | Performance   | Playwright                                    | A test that loads 1,000 todos and checks that each view renders in under 200 ms (NFR-4).                                                                                                     |
 
 **Coverage target:** 100% of the domain layer and at least 80% overall.

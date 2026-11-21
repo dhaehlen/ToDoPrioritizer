@@ -44,7 +44,7 @@
 /* Unsorted tray beside the matrix on wide screens, above it on narrow ones (FR-13). */
 .layout {
   display: grid;
-  grid-template-columns: 16rem 1fr;
+  grid-template-columns: 18rem 1fr;
   gap: var(--space-4);
   align-items: start;
 }
@@ -305,5 +305,18 @@
   }
   .cell {
     min-height: auto;
+  }
+}
+
+/* Touch screens: make the small card controls easier to hit. */
+@media (pointer: coarse) {
+  .handle,
+  .picker,
+  .cardAction,
+  .cellAdd {
+    min-height: 2.5rem;
+  }
+  .handle {
+    width: 2.25rem;
   }
 }
