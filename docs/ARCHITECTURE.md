@@ -50,7 +50,8 @@ split into four layers. Each layer may only use the layers below it.
 │   │   ├── db.ts              Dexie schema + migrations
 │   │   └── *.test.ts          contract tests run against both implementations
 │   ├── state/
-│   │   ├── RepositoryContext.tsx
+│   │   ├── TodoProvider.tsx   provider + todoContext.ts
+│   │   ├── TodoStore.ts       the single storage subscriber (snapshot + retry)
 │   │   ├── TodoService.ts     use cases (calls rules, then the repository)
 │   │   ├── useTodos.ts        reactive list (useSyncExternalStore)
 │   │   └── useTodoActions.ts
@@ -183,8 +184,10 @@ db.version(1).stores({ todos: 'id, createdAt' });
   `src/test/setup.ts`, because Dexie's `liveQuery` needs the global IDB
   classes when it loads. Each test also passes its own `new IDBFactory()` so
   tests never share data.
-- **Schema changes:** any change bumps `db.version(n)` and adds an
-  `.upgrade()` step. Each migration gets a test.
+- **Schema changes (during development):** fields are expected to change, so
+  there are no migrations yet. Edit `version(1)` in place, or bump the version
+  with no upgrade code, and clear local data if needed. Before a real release,
+  switch to adding a `db.version(n).upgrade()` step with a test for each change.
 
 ### 4.3 In-memory implementation
 
@@ -194,21 +197,44 @@ are known to behave the same way. The Dexie tests run on `fake-indexeddb`.
 
 ## 5. State layer
 
-- **`RepositoryContext`** gives the app its `TodoRepository`. In production
-  this is the Dexie implementation; in tests it is the in-memory one.
-- **`TodoService`** holds the use cases. Each one reads the todo, applies a
-  domain rule, then saves it, for example:
-  `complete(id) → repo.put(completeTodo(todo, clock.now()))`.
-  The clock and id generator are passed in so tests can control them.
-- **`useTodos()`** uses `useSyncExternalStore` on `repo.subscribe`, so the
-  list and the matrix always show the same data (FR-16). No separate store,
-  such as Redux or Zustand, is needed.
-- **`useTodoActions()`** gives components the service methods. It also
-  tracks whether a save is in progress and whether it failed.
-- **Error handling:** if a save fails, `ErrorBanner` shows a message that
-  does not close by itself. If IndexedDB cannot be opened at all (for example,
-  in some private browsing modes), the app shows a page explaining that it
-  cannot save data.
+- **`TodoProvider`** (`state/TodoProvider.tsx`) is given a `TodoRepository`
+  by whoever renders it: Dexie in `main.tsx`, the only place that picks real
+  storage, and in-memory in tests. It creates exactly one `TodoStore` and one
+  `TodoService` for the app.
+- **`TodoStore`** (`state/TodoStore.ts`) is the **only** subscriber to
+  `repo.subscribe` in each tab. It holds `{ status, todos, loadError,
+saveError }`, where `status` is `loading`, `ready`, or `error`.
+  - Its `subscribe`/`getSnapshot` pair is shaped for `useSyncExternalStore`.
+  - The snapshot object only changes when the state changes.
+  - The storage subscription starts with the first listener and stays open
+    while views mount and unmount, so switching views never shows "loading"
+    again.
+  - `stop()` closes it, and the next listener restarts it. This supports
+    React StrictMode's mount, cleanup, mount cycle.
+  - If storage fails, the status becomes `error` and the last list that loaded
+    is kept. The store then tries again after `retryDelayMs` (default 2 s).
+- **`TodoService`** (`state/TodoService.ts`) holds the use cases: `create`,
+  `update`, `complete`, `reopen`, `assignQuadrant`, `remove`.
+  - Each one reads the todo, applies a domain rule, and saves the result. When
+    the rule returns the same object (nothing changed), the save is skipped.
+  - The clock and id generator are passed in (`lib/clock.ts`).
+  - Methods never throw. They return a `Result` with an error `kind` of
+    `validation`, `notFound`, or `storage`. Storage failures are also
+    reported to the store (`saveError`).
+- **`useTodos()`** returns the store state. It uses `useSyncExternalStore` on
+  the shared store, so the list and the matrix always show the same data
+  (FR-16). No Redux or Zustand is needed.
+- **`useTodoActions()`** returns the service methods plus `pending`, which is
+  true while an action started from that component is running.
+- **`ErrorBanner`** (`ui/components`, shown in the app shell) uses
+  `role="alert"`.
+  - While `status` is `error`, it explains that storage can't be reached, for
+    example in private browsing. It clears once storage recovers.
+  - A failed save shows "couldn't be saved" until the user dismisses it.
+- **Known limitation:** each action reads, changes, then writes the todo, with
+  no transaction around the whole step. Two changes to the same todo at the
+  same moment, such as in two tabs, are resolved by "last write wins". That's
+  acceptable for a single user.
 
 ## 6. UI layer
 
@@ -339,7 +365,7 @@ typecheck are clean.
 | M0  | Scaffold    | Vite + React + TS project, TanStack Router with its Vite plugin and placeholder `/` and `/matrix` routes, ESLint (including the Playwright and TanStack Router plugins), Prettier, Vitest, Playwright set up for all 3 browsers, a smoke test, and the npm scripts. |
 | M1  | Domain      | `todo.ts`, `todo.rules.ts`, `selectors.ts`, `quadrants.ts`, and full unit tests.                                                                                                                                                                                    |
 | M2  | Data        | The repository interface, Dexie and in-memory implementations, and the contract tests.                                                                                                                                                                              |
-| M3  | State       | `RepositoryContext`, `TodoService`, the hooks, and error handling.                                                                                                                                                                                                  |
+| M3  | State       | `TodoProvider`, `TodoStore`, `TodoService`, the hooks, and `ErrorBanner`.                                                                                                                                                                                           |
 | M4  | List view   | Add, edit, delete with confirmation, complete and reopen, filters, and empty states. Component tests.                                                                                                                                                               |
 | M5  | Matrix view | The grid, Unsorted tray, dnd-kit, `QuadrantPicker`, counts, and the show-completed toggle. Component tests.                                                                                                                                                         |
 | M6  | Polish      | Responsive layout, an accessibility pass, and error states.                                                                                                                                                                                                         |

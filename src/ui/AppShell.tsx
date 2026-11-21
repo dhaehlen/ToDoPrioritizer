@@ -1,6 +1,7 @@
 import { Link, Outlet } from '@tanstack/react-router';
 import { lazy, Suspense } from 'react';
 import styles from './AppShell.module.css';
+import { ErrorBanner } from './components/ErrorBanner';
 
 // Loaded only in development; the import is dropped from production builds.
 const RouterDevtools = import.meta.env.DEV
@@ -33,6 +34,7 @@ export function AppShell() {
         </nav>
       </header>
       <main className={styles.main}>
+        <ErrorBanner />
         <Outlet />
       </main>
       <Suspense fallback={null}>

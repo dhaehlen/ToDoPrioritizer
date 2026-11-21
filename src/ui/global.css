@@ -6,6 +6,9 @@
   --color-border: #dde1e6;
   --color-hover: #eceff3;
   --color-focus: #2563eb;
+  --color-danger-bg: #fdecec;
+  --color-danger-border: #f5b5b5;
+  --color-danger-text: #8a1c1c;
 
   --space-1: 0.25rem;
   --space-2: 0.5rem;
@@ -35,6 +38,9 @@
     --color-border: #33373d;
     --color-hover: #2a2e34;
     --color-focus: #6ea0ff;
+    --color-danger-bg: #3a1d1d;
+    --color-danger-border: #6b2b2b;
+    --color-danger-text: #ffc9c9;
   }
 }
 

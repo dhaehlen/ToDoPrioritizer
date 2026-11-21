@@ -14,6 +14,16 @@ test.describe('app shell', () => {
     await expect(page.getByRole('heading', { level: 1, name: 'Todos' })).toBeVisible();
   });
 
+  test('opens browser storage without showing an error', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.getByRole('heading', { level: 1, name: 'Todos' })).toBeVisible();
+    // Wait until the app has created its IndexedDB database, then check for errors.
+    await expect
+      .poll(async () => (await page.evaluate(() => indexedDB.databases())).map((d) => d.name))
+      .toContain('todo-prioritizer');
+    await expect(page.getByRole('alert')).toHaveCount(0);
+  });
+
   test('opens /matrix directly (deep link)', async ({ page }) => {
     await page.goto('/matrix');
     await expect(page.getByRole('heading', { level: 1, name: 'Eisenhower Matrix' })).toBeVisible();
