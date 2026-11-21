@@ -18,6 +18,11 @@ export default defineConfig({
       provider: 'v8',
       include: ['src/**/*.{ts,tsx}'],
       exclude: ['src/**/*.test.{ts,tsx}', 'src/test/**', 'src/routeTree.gen.ts', 'src/main.tsx'],
+      // ARCHITECTURE §7: 100% for the domain layer. The 80% overall target
+      // is added once there is enough UI code to measure.
+      thresholds: {
+        'src/domain/**': { statements: 100, branches: 100, functions: 100, lines: 100 },
+      },
     },
   },
 });
