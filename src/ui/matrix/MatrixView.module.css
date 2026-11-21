@@ -1,0 +1,309 @@
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.heading {
+  margin: 0;
+}
+
+.heading:focus {
+  outline: none;
+}
+
+.headerActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+}
+
+.toggle input {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--color-primary);
+}
+
+.loading {
+  padding: var(--space-6) var(--space-4);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+/* Unsorted tray beside the matrix on wide screens, above it on narrow ones (FR-13). */
+.layout {
+  display: grid;
+  grid-template-columns: 16rem 1fr;
+  gap: var(--space-4);
+  align-items: start;
+}
+
+/* 2×2 grid with axis labels: corner, two column labels, then two rows. */
+.matrix {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr;
+  grid-auto-rows: auto;
+  gap: var(--space-2);
+}
+
+.corner {
+  min-width: 1.5rem;
+}
+
+.axis {
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.axisTop {
+  text-align: center;
+}
+
+.axisSide {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  text-align: center;
+}
+
+.cell {
+  display: flex;
+  flex-direction: column;
+  min-height: 12rem;
+  padding: var(--space-3);
+  border: 2px solid var(--color-border);
+  border-top-width: 6px;
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  transition:
+    background-color 120ms,
+    border-color 120ms;
+}
+
+/* Quadrant colors are a hint only: each quadrant is also named in text (NFR-2). */
+.cell[data-quadrant='Q1'] {
+  border-top-color: #c0392b;
+}
+.cell[data-quadrant='Q2'] {
+  border-top-color: #2e86c1;
+}
+.cell[data-quadrant='Q3'] {
+  border-top-color: #d68910;
+}
+.cell[data-quadrant='Q4'] {
+  border-top-color: #7f8c8d;
+}
+.cell[data-quadrant='unsorted'] {
+  border-style: dashed;
+  border-top-width: 2px;
+}
+
+.over {
+  border-color: var(--color-primary);
+  background: var(--color-hover);
+}
+
+.cellHeader {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0 var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.cellTitle {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.cellCount {
+  display: inline-block;
+  min-width: 1.5rem;
+  margin-left: var(--space-1);
+  padding: 0 var(--space-1);
+  border-radius: 999px;
+  background: var(--color-bg);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+.cellHint {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+}
+
+.cellAdd {
+  grid-column: 2;
+  grid-row: 1;
+  font: inherit;
+  font-size: 0.8125rem;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.cellAdd:hover {
+  color: var(--color-text);
+  background: var(--color-hover);
+}
+
+.cellEmpty {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: var(--space-4);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+  cursor: grab;
+  touch-action: manipulation;
+}
+
+.card[data-completed] .cardTitle {
+  text-decoration: line-through;
+  color: var(--color-done);
+}
+
+.dragging {
+  opacity: 0.4;
+}
+
+.preview {
+  grid-template-columns: auto 1fr;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.2);
+  cursor: grabbing;
+}
+
+.handle {
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.75rem;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 1rem;
+  cursor: grab;
+  touch-action: none;
+}
+
+.handle:hover {
+  background: var(--color-hover);
+}
+
+.cardCheckbox {
+  width: 1.1rem;
+  height: 1.1rem;
+  margin: 0;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.cardTitle {
+  margin: 0;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.cardActions {
+  grid-column: 2 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.picker {
+  font: inherit;
+  font-size: 0.8125rem;
+  padding: 0 var(--space-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.cardAction {
+  font: inherit;
+  font-size: 0.8125rem;
+  padding: 0 var(--space-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.cardAction:hover {
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+
+/* Narrower screens: put the tray above the matrix. */
+@media (max-width: 960px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+  .cell[data-quadrant='unsorted'] {
+    min-height: auto;
+  }
+}
+
+/* Phones (NFR-3): stack the quadrants Q1–Q4 in one column, without axis labels.
+   Each quadrant still says whether it is urgent and important. */
+@media (max-width: 640px) {
+  .matrix {
+    grid-template-columns: 1fr;
+  }
+  .corner,
+  .axis {
+    display: none;
+  }
+  .cell {
+    min-height: auto;
+  }
+}

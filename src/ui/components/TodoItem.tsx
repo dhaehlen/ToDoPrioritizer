@@ -1,9 +1,10 @@
-import { useId, useState } from 'react';
+import { useId } from 'react';
 import { QUADRANT_INFO } from '../../domain/quadrants';
 import type { Todo } from '../../domain/todo';
 import { cx } from '../../lib/cx';
 import { formatDate, formatDateTime } from '../../lib/formatDate';
 import styles from './TodoItem.module.css';
+import { useOptimisticToggle } from './useOptimisticToggle';
 
 export interface TodoItemProps {
   todo: Todo;
@@ -29,22 +30,7 @@ export function TodoItem({ todo, onToggle, onEdit, onDelete }: TodoItemProps) {
   const titleId = useId();
   const quadrant = todo.quadrant ? QUADRANT_INFO[todo.quadrant] : null;
 
-  // Show the new checkbox state right away instead of waiting for storage to
-  // confirm it. Otherwise the controlled checkbox snaps back for a moment. The
-  // optimistic value only applies while `updatedAt` is unchanged, so it is
-  // dropped automatically once the saved todo arrives. On failure it's undone.
-  // (Keyed on `updatedAt`, not the object, because storage sends fresh copies
-  // of every todo whenever any todo changes.)
-  const [optimistic, setOptimistic] = useState<{ updatedAt: string; checked: boolean } | null>(
-    null,
-  );
-  const checked = optimistic?.updatedAt === todo.updatedAt ? optimistic.checked : todo.isCompleted;
-
-  async function handleChange() {
-    setOptimistic({ updatedAt: todo.updatedAt, checked: !checked });
-    const saved = await onToggle(todo);
-    if (!saved) setOptimistic(null);
-  }
+  const { checked, toggle } = useOptimisticToggle(todo, onToggle);
 
   return (
     <li className={styles.item} data-completed={checked || undefined}>
@@ -52,7 +38,7 @@ export function TodoItem({ todo, onToggle, onEdit, onDelete }: TodoItemProps) {
         type="checkbox"
         className={styles.checkbox}
         checked={checked}
-        onChange={() => void handleChange()}
+        onChange={() => void toggle()}
         aria-labelledby={titleId}
       />
       <div className={styles.body}>

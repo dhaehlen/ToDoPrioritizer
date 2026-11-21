@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { QUADRANT_INFO, QUADRANT_LIST, quadrantFor } from './quadrants';
+import { QUADRANT_INFO, QUADRANT_LIST, quadrantFor, quadrantLabel } from './quadrants';
 import { isQuadrant, QUADRANTS } from './todo';
 
 describe('quadrants (REQUIREMENTS §4)', () => {
@@ -15,6 +15,11 @@ describe('quadrants (REQUIREMENTS §4)', () => {
       expect(QUADRANT_INFO[expected]).toMatchObject({ id: expected, urgent, important, label });
     },
   );
+
+  it('quadrantLabel names each quadrant, and null as Unsorted', () => {
+    expect(quadrantLabel('Q2')).toBe('Schedule');
+    expect(quadrantLabel(null)).toBe('Unsorted');
+  });
 
   it('lists quadrants in Q1–Q4 order', () => {
     expect(QUADRANT_LIST.map((q) => q.id)).toEqual([...QUADRANTS]);

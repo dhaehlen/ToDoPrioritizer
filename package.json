@@ -21,6 +21,8 @@
     "e2e:install": "playwright install chromium firefox webkit"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/utilities": "^3.2.2",
     "@tanstack/react-router": "^1.170.46",
     "dexie": "^4.4.7",
     "react": "^19.3.1",

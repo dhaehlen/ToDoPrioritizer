@@ -331,11 +331,53 @@ library throughout.
 
 ### 6.3 Drag-and-drop
 
-dnd-kit is set up with a `DndContext` that uses `PointerSensor`,
-`TouchSensor`, and `KeyboardSensor`. There are five drop targets: Q1–Q4 and
-Unsorted. `onDragEnd` calls `service.assignQuadrant(id, target)`. Screen
-reader announcements are customized to use the quadrant names ("Moved 'Pay
-rent' to Do Now"). Cards cannot be reordered within a quadrant (Q6).
+The app uses `@dnd-kit/core` 6 (stable). The newer `@dnd-kit/react` is still
+pre-1.0. Everything specific to drag-and-drop is in `ui/matrix/dnd.ts`.
+
+- **Drop targets:** there are five, with dnd-kit ids `Q1`–`Q4` and
+  `unsorted`. Draggables use the todo's `id`. `quadrantForTarget` maps a
+  target id back to a quadrant, or `null` for Unsorted.
+- **Sensors:**
+  - **Mouse and pen (`CardPointerSensor`):** pressing anywhere on a card and
+    moving at least 6 px starts a drag.
+  - **Touch (`CardTouchSensor`):** a 250 ms long press starts a drag, so a
+    swipe still scrolls the page.
+  - **Keyboard (`KeyboardSensor`):** only the card's drag handle responds.
+  - Both custom sensors ignore presses that start on the card's own controls
+    (checkbox, "Move to" menu, buttons). The handle is the exception; see
+    `startsDrag`.
+- **Keyboard movement (`jumpBetweenTargets`):** the arrow keys jump straight
+  to the nearest target in that direction. dnd-kit's default moves the card a
+  few pixels per key press. This works in both the 2×2 grid and the stacked
+  phone layout.
+  - The start position comes from `currentCoordinates`, not `context.over`.
+    `over` only updates after a re-render, so it is stale when keys are
+    pressed quickly.
+- **Collision detection:** the target under the pointer wins (`pointerWithin`).
+  With the keyboard there is no pointer, so it falls back to `rectIntersection`.
+- **Drag preview:** a `DragOverlay` shows a copy of the card that follows the
+  pointer. The original card is dimmed in place. There is no drop animation.
+- **Optimistic moves:** `useOptimisticMoves` shows the card in its new
+  quadrant right away, and puts it back if the save fails. It uses the same
+  `updatedAt` keying as the checkbox. `onDragEnd` calls `moveTo` through
+  `useTodoInteractions`.
+- **Screen readers:** announcements use todo titles and quadrant names, for
+  example "“Pay rent” is over Schedule." and "“Pay rent” moved to Schedule.".
+  The instructions explain the keys and mention the "Move to" menu.
+- **Moving without dragging:** every card has a "Move to" native `<select>`
+  (`QuadrantPicker`). This satisfies FR-14's non-drag requirement without
+  custom menu code.
+- **No reordering:** cards cannot be reordered within a quadrant (Q6).
+- **Known limitation:** dnd-kit decides the drop target after a re-render.
+  Releasing at the exact instant the pointer reaches a target can drop the
+  card on the previous one. People see the highlight before letting go, so
+  this doesn't happen in practice. The e2e tests wait for the "is over …"
+  announcement before releasing, for the same reason.
+
+**Shared view logic:** `ui/components/useTodoInteractions.tsx` holds the
+add/edit dialog, the delete confirmation, toggling, moving, and the
+`role="status"` announcements. Both views use it. `useOptimisticToggle` is
+shared by `TodoItem` (list) and `TodoCard` (matrix).
 
 ### 6.4 Styling and responsiveness
 

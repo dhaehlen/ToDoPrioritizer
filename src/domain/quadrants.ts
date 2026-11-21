@@ -32,6 +32,10 @@ export const QUADRANT_INFO: Readonly<Record<Quadrant, QuadrantInfo>> = {
 /** Quadrants in display order (Q1–Q4). */
 export const QUADRANT_LIST: readonly QuadrantInfo[] = QUADRANTS.map((q) => QUADRANT_INFO[q]);
 
+/** The display label for a quadrant, or "Unsorted" for `null`. */
+export const quadrantLabel = (quadrant: Quadrant | null): string =>
+  quadrant ? QUADRANT_INFO[quadrant].label : 'Unsorted';
+
 /** Maps the two Eisenhower questions to a quadrant. */
 export function quadrantFor(flags: { urgent: boolean; important: boolean }): Quadrant {
   if (flags.important) return flags.urgent ? 'Q1' : 'Q2';

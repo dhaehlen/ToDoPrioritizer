@@ -10,6 +10,8 @@ import { validationMessage } from './validationMessage';
 export interface TodoFormProps {
   /** The todo to edit. Leave out to create a new one. */
   todo?: Todo;
+  /** The quadrant preselected when creating a todo (e.g. "Add to Schedule"). */
+  initialQuadrant?: Quadrant | null;
   /** Called after a successful save. */
   onSaved: (todo: Todo) => void;
   onCancel: () => void;
@@ -21,11 +23,11 @@ const UNSORTED = '';
  * The add/edit form (FR-1, FR-2, FR-4). Validation runs in the domain layer.
  * This form only shows the result, next to the field it applies to.
  */
-export function TodoForm({ todo, onSaved, onCancel }: TodoFormProps) {
+export function TodoForm({ todo, initialQuadrant = null, onSaved, onCancel }: TodoFormProps) {
   const { create, update, pending } = useTodoActions();
   const [title, setTitle] = useState(todo?.title ?? '');
   const [description, setDescription] = useState(todo?.description ?? '');
-  const [quadrant, setQuadrant] = useState<Quadrant | null>(todo?.quadrant ?? null);
+  const [quadrant, setQuadrant] = useState<Quadrant | null>(todo ? todo.quadrant : initialQuadrant);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<TodoField, string>>>({});
   const [formError, setFormError] = useState<string | null>(null);
 
