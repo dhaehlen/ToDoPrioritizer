@@ -1,0 +1,111 @@
+.item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.checkbox {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0.15rem 0 0;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.body {
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.item[data-completed] .title {
+  text-decoration: line-through;
+  color: var(--color-done);
+}
+
+.description {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-muted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  margin: var(--space-2) 0 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+/* Quadrant badges: the text label always names the quadrant, and color is only a hint (NFR-2). */
+.badge {
+  padding: 0 var(--space-2);
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.badge[data-quadrant='Q1'] {
+  border-color: #c0392b;
+}
+.badge[data-quadrant='Q2'] {
+  border-color: #2e86c1;
+}
+.badge[data-quadrant='Q3'] {
+  border-color: #d68910;
+}
+.badge[data-quadrant='Q4'] {
+  border-color: #7f8c8d;
+}
+.badge[data-quadrant='unsorted'] {
+  border-style: dashed;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.action {
+  font: inherit;
+  font-size: 0.875rem;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.action:hover {
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+
+.delete:hover {
+  color: var(--color-danger-text);
+}
+
+@media (max-width: 480px) {
+  .item {
+    grid-template-columns: auto 1fr;
+  }
+  .actions {
+    grid-column: 2;
+  }
+}

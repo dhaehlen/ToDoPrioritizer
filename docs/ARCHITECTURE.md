@@ -303,6 +303,32 @@ library throughout.
 | `DraggableTodoCard`             | A dnd-kit draggable card.                                                                            | FR-14            |
 | `QuadrantPicker`                | A menu ("Move to…") on every card, for users who can't or don't drag.                                | FR-14, NFR-2     |
 
+**Implementation notes (M4):**
+
+- **Native `<dialog>`:** the `Dialog` component uses the native `<dialog>`
+  element, so focus trapping, Escape to close, and returning focus come from
+  the browser. React's `autoFocus` runs before the dialog is open, so it does
+  nothing here. Instead, the element marked `data-autofocus` is focused right
+  after `showModal()`. jsdom has no `showModal`, so `src/test/setup.ts`
+  includes a minimal polyfill. The real dialog behavior is covered by e2e
+  tests.
+- **`ListView` reads its search params** with `getRouteApi('/')`, so the
+  component doesn't import its own route file. Importing it would create an
+  import cycle and break code splitting.
+- **The completion checkbox is optimistic.** It shows the new state right away
+  and is undone if the save fails. Without this, the controlled checkbox
+  snaps back until storage confirms the change. The optimistic value is keyed
+  on `updatedAt`, because storage sends fresh copies of every todo after any
+  change.
+- **Screen reader announcements:** adding, saving, completing, and deleting a
+  todo are announced through a `role="status"` region. After a delete, focus
+  moves to the page heading.
+- **Class names** are joined with `lib/cx.ts`. Lookups in a CSS module are
+  typed `string | undefined` because `noUncheckedIndexedAccess` is on.
+- **Lint exception for tests:** the boundary rule that stops UI code from
+  importing `src/data` doesn't apply to `*.test.*` files. Tests need to set up
+  in-memory storage.
+
 ### 6.3 Drag-and-drop
 
 dnd-kit is set up with a `DndContext` that uses `PointerSensor`,

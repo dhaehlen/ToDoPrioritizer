@@ -80,6 +80,8 @@ export default defineConfig([
   },
   {
     files: ['src/ui/**', 'src/routes/**'],
+    // Tests may wire up storage directly (e.g. seed an in-memory repository).
+    ignores: ['**/*.test.{ts,tsx}'],
     rules: {
       'no-restricted-imports': forbidLayers(
         ['data', 'dexie'],

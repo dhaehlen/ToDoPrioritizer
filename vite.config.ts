@@ -24,9 +24,12 @@ export default defineConfig({
         'src/routeTree.gen.ts',
         'src/main.tsx',
       ],
-      // ARCHITECTURE §7: 100% for the domain layer. The 80% overall target
-      // is added once there is enough UI code to measure.
+      // ARCHITECTURE §7: at least 80% overall, and 100% for the domain layer.
       thresholds: {
+        statements: 80,
+        branches: 80,
+        functions: 80,
+        lines: 80,
         'src/domain/**': { statements: 100, branches: 100, functions: 100, lines: 100 },
       },
     },
