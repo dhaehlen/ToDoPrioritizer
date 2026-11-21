@@ -17,7 +17,13 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['src/**/*.{ts,tsx}'],
-      exclude: ['src/**/*.test.{ts,tsx}', 'src/test/**', 'src/routeTree.gen.ts', 'src/main.tsx'],
+      exclude: [
+        'src/**/*.test.{ts,tsx}',
+        'src/**/*.contract.ts',
+        'src/test/**',
+        'src/routeTree.gen.ts',
+        'src/main.tsx',
+      ],
       // ARCHITECTURE §7: 100% for the domain layer. The 80% overall target
       // is added once there is enough UI code to measure.
       thresholds: {

@@ -137,11 +137,22 @@ Every change also sets `updatedAt = now`.
 ```ts
 export interface TodoRepository {
   getAll(): Promise<Todo[]>;
-  put(todo: Todo): Promise<void>; // insert or replace
-  delete(id: string): Promise<void>;
-  subscribe(listener: () => void): () => void; // fires after any change
+  get(id: string): Promise<Todo | undefined>;
+  put(todo: Todo): Promise<void>; // insert or replace; rejects InvalidTodoError
+  delete(id: string): Promise<void>; // unknown id is a no-op
+  subscribe(observer: TodoObserver): () => void; // see below
+}
+
+interface TodoObserver {
+  next(todos: readonly Todo[]): void; // full list on subscribe and after each change
+  error?(error: unknown): void;
 }
 ```
+
+`subscribe` sends the full list, rather than only saying "something
+changed", so the State layer can keep that list as its snapshot without
+reading storage again. The complete contract is written in the doc comment
+in `src/data/TodoRepository.ts`, and `TodoRepository.contract.ts` tests it.
 
 The interface is small on purpose. With at most about 1,000 todos (NFR-4),
 the app loads all of them and filters them in memory. This keeps querying
@@ -160,9 +171,18 @@ db.version(1).stores({ todos: 'id, createdAt' });
   made in this tab and, through Dexie's built-in broadcast, in other tabs.
 - Each `put` or `delete` is a single IndexedDB transaction, so it either
   succeeds completely or not at all (NFR-5).
-- **Data checks on load:** each stored record is checked against a Zod
-  schema when it is loaded. A record that fails the check is skipped and
-  logged, so one bad record cannot crash the app.
+- **Data checks on load and on write:** each stored record is checked against
+  a Zod schema (`todoSchema.ts`) when it is loaded. A record that fails the
+  check is skipped and reported through `onInvalidRecord` (by default
+  `console.warn`), so one bad record cannot crash the app. `put` checks too,
+  and rejects a malformed todo before anything is written.
+- The schema checks only the **shape** of a record, including the completion
+  invariant. It does not check the domain's length limits, so data saved under
+  older rules still loads. Unknown extra fields are removed, not rejected.
+- **Tests:** they use `fake-indexeddb`. It is installed globally in
+  `src/test/setup.ts`, because Dexie's `liveQuery` needs the global IDB
+  classes when it loads. Each test also passes its own `new IDBFactory()` so
+  tests never share data.
 - **Schema changes:** any change bumps `db.version(n)` and adds an
   `.upgrade()` step. Each migration gets a test.
 
