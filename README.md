@@ -53,6 +53,11 @@ npm run dev           # http://localhost:5173
 | `npm run lint`                    | Runs ESLint                                                           |
 | `npm run typecheck`               | Runs the TypeScript compiler without emitting                         |
 | `npm run format` / `format:check` | Runs Prettier                                                         |
+| `npm run check`                   | Format check, lint, typecheck, and unit tests with coverage           |
+| `npm run check:all`               | `check`, then the e2e tests                                           |
+
+A pre-commit hook (husky + lint-staged) runs ESLint and Prettier on staged files,
+then the typecheck. It's installed automatically by `npm install`.
 
 ## Project layout
 
