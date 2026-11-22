@@ -4,7 +4,8 @@ A to-do app with an Eisenhower Matrix view. It runs entirely in the browser and
 stores data on your device. There are no accounts and no server.
 
 - Requirements: [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md)
-- Architecture, decisions, and milestones: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- Architecture and milestones: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- Why things are the way they are: [docs/adr/](docs/adr/README.md) (Architecture Decision Records)
 
 ## Features
 

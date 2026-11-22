@@ -1,6 +1,8 @@
 # ToDoPrioritizer — Architecture Plan (Draft v0.1)
 
 Status: **v1.0 — M0–M7 complete.** This document describes the code as built.
+The reasoning behind each significant decision, and who made it, is in the
+[Architecture Decision Records](adr/README.md).
 Implements: `docs/REQUIREMENTS.md` v0.3
 
 ## 1. Overview
